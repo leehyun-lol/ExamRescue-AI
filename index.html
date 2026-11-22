@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>ExamRescue AI</title>
+  <style>
+    :root{--bg:#f5f7fb;--c:#fff;--t:#1b2333;--m:#667;--p:#4f46e5;--g:#16a34a;--r:#dc2626;--b:#dde2ee}
+    *{box-sizing:border-box}
+    body{margin:0;font:15px/1.5 system-ui,Segoe UI,Arial,sans-serif;background:var(--bg);color:var(--t)}
+    header{background:linear-gradient(135deg,#4f46e5,#7c3aed);color:#fff;padding:18px 24px}
+    header h1{margin:0;font-size:24px}
+    header p{margin:2px 0 0;opacity:.9}
+    main{max-width:1000px;margin:auto;padding:16px}
+    .card{background:var(--c);border:1px solid var(--b);border-radius:12px;padding:18px;margin-bottom:14px;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+    label{display:block;font-weight:600;margin:10px 0 4px}
+    input,textarea,select{width:100%;padding:9px;border:1px solid var(--b);border-radius:8px;font:inherit;background:#fff}
+    textarea{min-height:130px}
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    button{background:var(--p);color:#fff;border:0;border-radius:8px;padding:10px 16px;font:inherit;font-weight:600;cursor:pointer}
+    button.alt{background:#e8e9f8;color:var(--p)}
+    button:disabled{opacity:.5}
+    .tabs{display:flex;gap:8px;margin-bottom:14px}
+    .tabs button{background:#e8e9f8;color:var(--p)}
+    .tabs button.on{background:var(--p);color:#fff}
+    .chips{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
+    .chip{padding:4px 10px;border-radius:99px;background:#eef;font-size:13px;font-weight:500}
+    .chip.ok{background:#dcfce7;color:#166534}
+    .chip.run{background:#fef9c3;color:#854d0e}
+    .chip.err{background:#fee2e2;color:#991b1b}
+    .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px}
+    .fc{background:#eef2ff;border:1px solid #d7dffe;border-radius:10px;padding:14px;min-height:95px;cursor:pointer;transition:transform .12s}
+    .fc:hover{transform:translateY(-2px)}
+    .fc.flip{background:#dcfce7;border-color:#bbf7d0}
+    .opt{display:block;width:100%;text-align:left;background:#fff;color:var(--t);border:1px solid var(--b);margin:6px 0}
+    .opt:hover:not(:disabled){background:#f8f9ff;border-color:var(--p)}
+    .opt.ok{background:#dcfce7;border-color:var(--g);font-weight:600}
+    .opt.no{background:#fee2e2;border-color:var(--r)}
+    .coach-box{background:#f5f3ff;border-left:4px solid var(--p);padding:12px 14px;border-radius:8px;margin-bottom:14px}
+    .plan-table{width:100%;border-collapse:collapse;margin-top:8px;font-size:14px;overflow:hidden;border-radius:8px;border:1px solid var(--b)}
+    .plan-table th{background:#4f46e5;color:#fff;text-align:left;padding:10px 12px;font-weight:600}
+    .plan-table td{padding:10px 12px;border-bottom:1px solid var(--b);vertical-align:top}
+    .plan-table tr:nth-child(even){background:#f9faff}
+    .plan-table tr:last-child td{border-bottom:0}
+    .time-badge{display:inline-block;background:#eef2ff;color:var(--p);font-weight:700;padding:3px 8px;border-radius:6px;white-space:nowrap}
+    .kw-item{padding:8px 0;border-bottom:1px dashed var(--b)}
+    .kw-item:last-child{border-bottom:0}
+    small,.m{color:var(--m)}
+    #alert{display:none;background:var(--r);color:#fff;padding:10px;border-radius:8px;margin:8px 0;font-weight:700}
+    video,canvas{max-width:100%;border-radius:10px}
+    .big{font-size:42px;font-weight:800}
+    details{margin-top:16px;padding-top:12px;border-top:1px solid var(--b)}
+    summary{cursor:pointer;font-weight:600;color:var(--p)}
+    @media(max-width:640px){.row{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+  <header>
+    <h1>ExamRescue AI</h1>
+    <p>Exam tomorrow? Paste your notes and get a rescue plan, quiz and focus coach in minutes.</p>
+  </header>
+
+  <main>
+    <div class="tabs">
+      <button id="t1" class="on" onclick="tab(1)">1. Rescue Pack</button>
+      <button id="t2" class="alt" onclick="tab(2)">2. Focus Mode</button>
+      <button id="t3" class="alt" onclick="tab(3)">Settings</button>
+    </div>
+
+    <section id="p3" class="card" style="display:none">
+      <h3>Study Preferences</h3>
+      <div class="row">
+        <div>
+          <label>Focus Session Duration</label>
+          <select id="pomodoro">
+            <option value="25">25 minutes (Standard Pomodoro)</option>
+            <option value="15">15 minutes (Short / Stressed Mode)</option>
+            <option value="45">45 minutes (Deep Study)</option>
+          </select>
+        </div>
+        <div>
+          <label>Distraction Alert Delay</label>
+          <select id="delay">
+            <option value="6">3 seconds (Strict)</option>
+            <option value="10" selected>5 seconds (Balanced)</option>
+            <option value="16">8 seconds (Relaxed)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="row">
+        <div>
+          <label>Study Pack Language</label>
+          <select id="lang">
+            <option value="English">English</option>
+            <option value="Bahasa Melayu">Bahasa Melayu</option>
+            <option value="Bilingual (English & Bahasa Melayu)">Bilingual (English + BM)</option>
+          </select>
+        </div>
+        <div>
+          <label>Distraction Alert Sound</label>
+          <select id="sound">
+            <option value="on">On (Loud Audio Beep + Visual Alert)</option>
+            <option value="off">Off (Silent / Library Mode)</option>
+          </select>
+        </div>
+      </div>
+
+      <details id="apiBox">
+        <summary>API Key Configuration (Required for AI Study Pack)</summary>
+        <label>Google Gemini API key <small>(free at aistudio.google.com)</small></label>
+        <input id="key" type="password" placeholder="AIza...">
+        <p class="m">Saved locally in your browser only. Never uploaded to GitHub.</p>
+      </details>
+    </section>
+
+    <section id="p1">
+      <div class="card">
+        <div class="row">
+          <div><label>Subject / exam</label><input id="subj" placeholder="e.g. Android Programming"></div>
+          <div><label>Hours left until exam</label><input id="hrs" type="number" min="1" max="72" value="5"></div>
+        </div>
+        <label>Paste your lecture notes</label>
+        <textarea id="notes" placeholder="Paste notes, slides text or topics here..."></textarea>
+        <label>Or upload lecture files / photos <small>(PDF, photos of notes or slides, .txt; about 15 MB max in total)</small></label>
+        <input id="files" type="file" multiple accept="image/*,.pdf,.txt,.md" onchange="$('fl').textContent=[...this.files].map(f=>f.name).join(', ')">
+        <div id="fl" class="m"></div>
+        <label>How are you feeling right now? <small>(Hugging Face reads your mood; leave blank for Neutral)</small></label>
+        <input id="feel" placeholder="e.g. I'm so sad and stressed... OR I feel super excited and ready!">
+        <p>
+          <button id="go" onclick="rescue()">Generate my rescue pack</button>
+          <button class="alt" onclick="demo()">Load demo data</button>
+        </p>
+        <div class="chips">
+          <span id="c1" class="chip">Hugging Face: mood check</span>
+          <span id="c2" class="chip">Gemini: study pack</span>
+          <span id="c3" class="chip">Teachable Machine: focus coach</span>
+        </div>
+        <div id="msg" class="m"></div>
+      </div>
+      <div id="out"></div>
+    </section>
+
+    <section id="p2" class="card" style="display:none">
+      <h3>Focus Mode: Pomodoro with AI webcam coach</h3>
+      <p class="m">Pre-trained Teachable Machine vision model actively detects <b>Focused</b>, <b>Distracted</b> and <b>Away</b> states.</p>
+      <p>
+        <button onclick="startCam()">Start camera and AI</button>
+        <button class="alt" id="timerBtn" onclick="timer()">Start / pause timer</button>
+        <button class="alt" onclick="resetTimer()">Reset timer</button>
+      </p>
+      <div class="row">
+        <div><div id="cam"></div></div>
+        <div>
+          <div class="big" id="clock">25:00</div>
+          <div>Now: <b id="state">-</b></div>
+          <div>Focus score: <b id="score">0%</b></div>
+          <div id="bars" class="m"></div>
+          <div id="alert">Eyes back on your notes!</div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const $ = id => document.getElementById(id);
+
+    const TM_MODEL_URL = 'https://teachablemachine.withgoogle.com/models/pI1V3yGb1/';
+    const GEMINI_MODELS = ['gemini-2.5-flash', 'gemini-3.5-flash', 'gemini-3.1-flash-lite'];
+
+    let S = {};
+    try { S = JSON.parse(localStorage.getItem('er') || '{}'); } catch (e) {}
+    const defaults = { pomodoro: '25', delay: '10', lang: 'English', sound: 'on', key: '' };
+    S = { ...defaults, ...S };
+
+    ['key', 'pomodoro', 'delay', 'lang', 'sound'].forEach(k => {
+      $(k).value = S[k];
+      $(k).onchange = $(k).oninput = () => {
+        S[k] = $(k).value.trim();
+        try { localStorage.setItem('er', JSON.stringify(S)); } catch (e) {}
+        if (k === 'pomodoro' && !running) resetTimer();
+      };
+    });
+
+    function tab(n) {
+      [1, 2, 3].forEach(i => {
+        $('p' + i).style.display = i == n ? '' : 'none';
+        $('t' + i).classList.toggle('on', i == n);
+      });
+    }
+
+    const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    const chip = (id, cls) => $(id).className = 'chip ' + cls;
+
+    let clf;
+    async function mood(t) {
+      if (!t.trim()) return { label: 'NEUTRAL', score: 0.5 };
+      if (!clf) {
+        const { pipeline } = await import('https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.5.1');
+        clf = await pipeline('sentiment-analysis', 'Xenova/distilbert-base-uncased-finetuned-sst-2-english');
+      }
+      return (await clf(t))[0];
+    }
+
+    const b64 = f => new Promise(ok => {
+      const r = new FileReader();
+      r.onload = () => ok(r.result.split(',')[1]);
+      r.readAsDataURL(f);
+    });
+
+    async function readFiles() {
+      let txt = '', parts = [], size = 0;
+      for (const f of $('files').files) {
+        size += f.size;
+        if (/\.(txt|md)$/i.test(f.name) || f.type === 'text/plain') txt += '\n' + await f.text();
+        else if (f.type === 'application/pdf' || f.type.startsWith('image/')) {
+          parts.push({ inlineData: { mimeType: f.type || 'image/jpeg', data: await b64(f) } });
+        }
+      }
+      if (size > 15e6) throw new Error('Files are too big (about 15 MB max in total). Use fewer or smaller files.');
+      return { txt, parts };
+    }
+
+    async function gem(prompt, extra = []) {
+      let err;
+      for (const m of GEMINI_MODELS) {
+        const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-goog-api-key': S.key },
+          body: JSON.stringify({
+            contents: [{ parts: [...extra, { text: prompt }] }],
+            generationConfig: { responseMimeType: 'application/json' }
+          })
+        });
+        const j = await r.json();
+        if (r.ok) {
+          const raw = j.candidates?.[0]?.content?.parts?.map(p => p.text || '').join('') || '';
+          const clean = raw.replace(/```json|```/g, '').trim();
+          const start = clean.indexOf('{');
+          const end = clean.lastIndexOf('}');
+          if (start === -1 || end === -1) throw new Error('Invalid JSON structure returned.');
+          return JSON.parse(clean.slice(start, end + 1));
+        }
+        err = (j.error && j.error.message) || r.status;
+        if (![404, 429, 503].includes(r.status)) break;
+      }
+      throw new Error(err);
+    }
+
+    async function rescue() {
+      if (!S.key) {
+        tab(3);
+        $('apiBox').open = true;
+        $('msg').textContent = 'Add your Gemini API key in Settings first (or use demo data).';
+        return;
+      }
+      const notes = $('notes').value.trim();
+      if (notes.length < 20 && !$('files').files.length) {
+        $('msg').textContent = 'Please paste a few lines of notes or upload a file.';
+        return;
+      }
+      $('go').disabled = true;
+      $('out').innerHTML = '';
+      try {
+        const fx = await readFiles();
+        chip('c1', 'run');
+        $('msg').textContent = 'Hugging Face model is reading your mood (first run downloads the model, ~1 minute)...';
+        const m = await mood($('feel').value);
+
+        let moodLabel = 'Neutral / Balanced';
+        let badgeText = 'Neutral (Balanced Mode)';
+        let quizLevel = 'Standard mixed difficulty (conceptual + applied)';
+        let style = 'The student is in a NEUTRAL mood: use standard 25-minute study blocks with 5-minute breaks, balance theory and practice evenly, write a clear and steady 2-sentence encouraging message in "coach", and generate balanced medium-difficulty quiz questions.';
+
+        if (m.label === 'NEGATIVE' && m.score >= 0.65) {
+          moodLabel = 'Sad / Stressed (Gentle Mode)';
+          badgeText = `Sad / Stressed (${(m.score * 100).toFixed(0)}%)`;
+          quizLevel = 'Gentle & foundational (confidence-building questions)';
+          style = 'The student feels SAD or STRESSED: be very gentle, warm, and reassuring. Use short 15-minute micro-blocks with 10-minute rest breaks, start ONLY with the easiest foundational topics to build confidence, write a comforting 2-sentence empathetic encouragement in "coach", and make the quiz questions gentle and beginner-friendly so they feel encouraged.';
+        } else if (m.label === 'POSITIVE' && m.score >= 0.65) {
+          moodLabel = 'Happy / High Energy (Challenge Mode)';
+          badgeText = `Happy / Motivated (${(m.score * 100).toFixed(0)}%)`;
+          quizLevel = 'Challenging & scenario-based (high-energy mastery)';
+          style = 'The student is HAPPY and HIGH-ENERGY: match their high energy and enthusiasm! Use intensive 40-minute deep-work blocks with 5-minute breaks, tackle the hardest and highest-weight exam topics first, write an energetic, upbeat 2-sentence hype message in "coach", and make the quiz questions challenging and application-based to test deep mastery.';
+        }
+
+        chip('c1', 'ok');
+        $('c1').textContent = `Hugging Face: ${badgeText}`;
+
+        chip('c2', 'run');
+        $('msg').textContent = 'Gemini is building your personal rescue pack from your chapter...';
+
+        const p = `You are ExamRescue AI, an expert academic study coach. Write ALL output text in ${S.lang}.
+Subject: ${$('subj').value || 'General'}. Hours left: ${$('hrs').value}.
+Student Mood Adaptation: ${style}
+
+You MUST return ONLY a valid JSON object matching this exact schema:
+{
+  "coach": "2 sentences matching the student mood",
+  "summary": "Clear, thorough summary of the uploaded chapter/notes",
+  "concepts": [{"term": "Keyword from chapter", "meaning": "Clear definition/explanation from chapter"}],
+  "plan": [{"time": "e.g. 0:00 - 0:25", "task": "Specific topic/activity from chapter", "method": "e.g. Active Recall / Break / Practice"}],
+  "flashcards": [{"q": "Question based on chapter", "a": "Concise answer"}],
+  "quiz": [{"q": "Question tailored to student mood difficulty", "options": ["Option A", "Option B", "Option C", "Option D"], "answer": 0, "why": "Short explanation"}]
+}
+
+Requirements:
+- Base everything strictly on the lecture chapter/notes/files provided below.
+- Provide 6 to 8 key concepts highlighting important keywords from the chapter.
+- Provide a structured time-boxed rescue plan covering the ${$('hrs').value} hours left.
+- Provide 8 flashcards and 5 multiple-choice quiz questions tailored to: ${quizLevel}.
+
+Lecture Material:
+${(notes + fx.txt).slice(0, 14000)}`;
+
+        const data = await gem(p, fx.parts);
+        if (!data || (!data.summary && !data.coach && !data.plan)) {
+          throw new Error('AI returned incomplete data. Please ensure your PDF/notes contain readable text and try again.');
+        }
+        show(data, moodLabel, quizLevel);
+        chip('c2', 'ok');
+        $('msg').textContent = 'Done! Review your chapter rescue pack below or start Focus Mode.';
+      } catch (e) {
+        chip('c2', 'err');
+        $('msg').textContent = 'Error: ' + e.message;
+      }
+      $('go').disabled = false;
+    }
+
+    let Q = [], score = 0, done = 0;
+    function show(d, moodLabel = 'Neutral / Balanced', quizLevel = 'Standard Difficulty') {
+      Q = d.quiz || [];
+      score = 0;
+      done = 0;
+
+      let html = '';
+      html += `<div class="card">
+        <div class="coach-box">
+          <strong>Your Coach Says <small>(Adapted to: ${esc(moodLabel)})</small></strong>
+          <p style="margin:6px 0 0">${esc(d.coach || 'Take it one step at a time—you have got this!')}</p>
+        </div>
+        <h3>Chapter Summary</h3>
+        <p>${esc(d.summary || 'Summary generated from your uploaded material.')}</p>
+      </div>`;
+
+      html += `<div class="card">
+        <h3>Time-Boxed Rescue Plan</h3>
+        <table class="plan-table">
+          <thead>
+            <tr>
+              <th style="width:140px">Time Slot</th>
+              <th>Study Activity & Chapter Focus</th>
+              <th style="width:170px">Method / Mode</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${(d.plan || []).map(x => `<tr>
+              <td><span class="time-badge">${esc(x.time)}</span></td>
+              <td>${esc(x.task)}</td>
+              <td><small><b>${esc(x.method || 'Focused Study')}</b></small></td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>`;
+
+      html += `<div class="card">
+        <h3>Key Concepts & Chapter Keywords</h3>
+        ${(d.concepts || []).map(x => `<div class="kw-item"><b>${esc(x.term)}</b>: ${esc(x.meaning)}</div>`).join('')}
+      </div>`;
+
+      html += `<div class="card">
+        <h3>Flashcards <small>(click any card to flip)</small></h3>
+        <div class="grid">
+          ${(d.flashcards || []).map(x => `<div class="fc" data-q="${esc(x.q)}" data-a="${esc(x.a)}" onclick="flip(this)"><b>Q:</b> ${esc(x.q)}</div>`).join('')}
+        </div>
+      </div>`;
+
+      html += `<div class="card">
+        <h3>Practice Quiz <small>(${esc(quizLevel)})</small> <span id="sc" class="m" style="float:right"></span></h3>
+        ${Q.map((x, i) => `<div id="q${i}" style="margin-bottom:14px">
+          <p><b>${i + 1}. ${esc(x.q)}</b></p>
+          ${(x.options || []).map((o, j) => `<button class="opt" onclick="ans(${i},${j})">${esc(o)}</button>`).join('')}
+          <p class="m" id="w${i}"></p>
+        </div>`).join('')}
+      </div>`;
+
+      $('out').innerHTML = html;
+    }
+
+    function flip(e) {
+      e.classList.toggle('flip');
+      e.innerHTML = e.classList.contains('flip') ? '<b>A:</b> ' + esc(e.dataset.a) : '<b>Q:</b> ' + esc(e.dataset.q);
+    }
+
+    function ans(i, j) {
+      const q = Q[i], bs = document.querySelectorAll('#q' + i + ' .opt');
+      if (bs[0].disabled) return;
+      bs.forEach((b, k) => {
+        b.disabled = true;
+        if (k == q.answer) b.classList.add('ok');
+      });
+      if (j == q.answer) score++;
+      else bs[j].classList.add('no');
+      $('w' + i).textContent = q.why;
+      done++;
+      $('sc').textContent = `Score: ${score}/${done}`;
+    }
+
+    function demo() {
+      $('subj').value = 'Database Systems';
+      $('notes').value = '(demo data loaded)';
+      show({
+        coach: 'You have plenty of time to master this chapter. Take it one structured block at a time and trust the process!',
+        summary: 'Database normalization organizes relational tables to minimize data redundancy and eliminate insertion, update, and deletion anomalies through 1NF, 2NF, and 3NF.',
+        concepts: [
+          { term: 'Primary Key (PK)', meaning: 'A unique attribute or set of attributes that uniquely identifies each record in a table.' },
+          { term: 'Foreign Key (FK)', meaning: 'An attribute in one table that references the Primary Key of another table to establish relationships.' },
+          { term: 'First Normal Form (1NF)', meaning: 'Ensures every column contains atomic values and eliminates repeating groups.' },
+          { term: 'Second Normal Form (2NF)', meaning: 'Achieves 1NF and removes partial dependencies on a composite primary key.' }
+        ],
+        plan: [
+          { time: '0:00 - 0:25', task: 'Review 1NF, 2NF, and 3NF definitions with table examples', method: 'Concept Mapping' },
+          { time: '0:25 - 0:30', task: 'Short hydration & eye rest break', method: 'Recovery Break' },
+          { time: '0:30 - 0:55', task: 'Practice decomposing unnormalized tables into 3NF', method: 'Active Practice' }
+        ],
+        flashcards: [
+          { q: 'What dependency does 3NF remove?', a: 'Transitive dependencies between non-key attributes.' },
+          { q: 'What is required for a table to be in 1NF?', a: 'Atomic cell values and no repeating groups.' }
+        ],
+        quiz: [
+          { q: 'Which normal form specifically removes partial dependencies?', options: ['1NF', '2NF', '3NF', 'BCNF'], answer: 1, why: '2NF removes partial dependencies where a non-key attribute depends on only part of a composite key.' }
+        ]
+      }, 'Neutral / Balanced', 'Standard Mixed Difficulty');
+    }
+
+    let model, cam, running = false, secs = Number(S.pomodoro) * 60, tick = null, good = 0, total = 0, bad = 0;
+    const load = src => new Promise((ok, no) => {
+      const s = document.createElement('script');
+      s.src = src;
+      s.onload = ok;
+      s.onerror = no;
+      document.head.appendChild(s);
+    });
+
+    async function startCam() {
+      try {
+        chip('c3', 'run');
+        if (!window.tmImage) {
+          await load('https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@1.3.1/dist/tf.min.js');
+          await load('https://cdn.jsdelivr.net/npm/@teachablemachine/image@0.8.5/dist/teachablemachine-image.min.js');
+        }
+        model = await tmImage.load(TM_MODEL_URL + 'model.json', TM_MODEL_URL + 'metadata.json');
+        cam = new tmImage.Webcam(300, 225, true);
+        await cam.setup();
+        await cam.play();
+        $('cam').innerHTML = '';
+        $('cam').appendChild(cam.canvas);
+        chip('c3', 'ok');
+        loop();
+      } catch (e) {
+        chip('c3', 'err');
+        alert('Camera/model error: ' + e.message);
+      }
+    }
+
+    async function loop() {
+      cam.update();
+      const p = await model.predict(cam.canvas);
+      const top = p.reduce((a, b) => b.probability > a.probability ? b : a);
+      const focused = /focus/i.test(top.className);
+      const threshold = Number(S.delay) || 10;
+
+      $('state').textContent = `${top.className} (${(top.probability * 100).toFixed(0)}%)`;
+      $('bars').innerHTML = p.map(x => `${esc(x.className)}: ${(x.probability * 100).toFixed(0)}%`).join(' | ');
+
+      if (running) {
+        total++;
+        if (focused) { good++; bad = 0; }
+        else bad++;
+        $('score').textContent = Math.round(good / total * 100) + '%';
+        $('alert').style.display = bad >= threshold ? 'block' : 'none';
+        if (bad === threshold && S.sound === 'on') beep();
+      }
+      setTimeout(loop, 500);
+    }
+
+    function updateClockDisplay() {
+      $('clock').textContent = String(Math.floor(secs / 60)).padStart(2, '0') + ':' + String(secs % 60).padStart(2, '0');
+    }
+
+    function timer() {
+      running = !running;
+      if (!running) { clearInterval(tick); return; }
+      tick = setInterval(() => {
+        secs--;
+        updateClockDisplay();
+        if (secs <= 0) {
+          clearInterval(tick);
+          running = false;
+          if (S.sound === 'on') beep();
+          alert('Time for a break! Focus score: ' + $('score').textContent);
+        }
+      }, 1000);
+    }
+
+    function resetTimer() {
+      clearInterval(tick);
+      running = false;
+      secs = (Number(S.pomodoro) || 25) * 60;
+      good = 0; total = 0; bad = 0;
+      $('score').textContent = '0%';
+      $('alert').style.display = 'none';
+      updateClockDisplay();
+    }
+
+    updateClockDisplay();
+
+    function beep() {
+      try {
+        const a = new (window.AudioContext || window.webkitAudioContext)();
+        const now = a.currentTime;
+        [0, 0.25, 0.5].forEach(offset => {
+          const o = a.createOscillator();
+          const g = a.createGain();
+          o.type = 'sawtooth';
+          o.frequency.setValueAtTime(880, now + offset);
+          g.gain.setValueAtTime(1.0, now + offset);
+          g.gain.exponentialRampToValueAtTime(0.01, now + offset + 0.18);
+          o.connect(g);
+          g.connect(a.destination);
+          o.start(now + offset);
+          o.stop(now + offset + 0.18);
+        });
+      } catch (e) {}
+    }
+  </script>
+</body>
+</html>
